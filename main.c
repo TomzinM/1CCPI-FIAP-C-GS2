@@ -4,7 +4,7 @@
 #include <ctype.h>
 
 // respostas individuais de tokens
-typedef struct Resposta {
+typedef struct {
     char autor[50];
     char mensagem[500];
 } Resposta;
@@ -20,27 +20,52 @@ typedef struct Reclamacao {
     Resposta lista_respostas[100];  // cada token tem um limite de 100 respostas
     int qtd_respostas;
     struct Reclamacao* proximo; // Aponta para a PRÓXIMA reclamação do sistema
-} Reclamacao;
+} Reclamacao;   
 
 
 // cria um token novo, registra a informação, traz de volta para a main
 Reclamacao* cadastrar(Reclamacao* head, int novo_id){
     Reclamacao* novo = malloc(sizeof(Reclamacao));
+
+    if (novo == NULL) {
+        printf("Erro: nao foi possivel alocar memoria.\n");
+        return head;
+    }
+
     novo->id = novo_id;
     strcpy(novo->status, "Pendente");
     novo->qtd_respostas = 0;
+    memset(novo->lista_respostas, 0, sizeof(novo->lista_respostas));
 
     printf("Titulo do topico: ");
     fgets(novo->titulo, sizeof(novo->titulo), stdin);
     novo->titulo[strcspn(novo->titulo, "\n")] = '\0';
 
+    if (strlen(novo->titulo) == 0) {
+        printf("O titulo nao pode ficar vazio.\n");
+        free(novo);
+        return head;
+    }
+
     printf("Nome da Escola que esse pedido interessa: ");
     fgets(novo->escola, sizeof(novo->escola), stdin);
     novo->escola[strcspn(novo->escola, "\n")] = '\0';
 
+    if (strlen(novo->escola) == 0) {
+        printf("O nome da escola nao pode ficar vazio.\n");
+        free(novo);
+        return head;
+    }
+
     printf("Descricao do topico: ");
     fgets(novo->descricao, sizeof(novo->descricao), stdin);
     novo->descricao[strcspn(novo->descricao, "\n")] = '\0';
+
+    if (strlen(novo->descricao) == 0) {
+        printf("A descricao nao pode ficar vazia.\n");
+        free(novo);
+        return head;
+    }
 
     novo->proximo = head;
 
@@ -54,7 +79,7 @@ int obter_peso(char* status){
         return 1;
     }
     
-    if (strcmp(status, "Em andamento") == 0){
+    if (strcmp(status, "Em Andamento") == 0){
         return 2;
     }
 
@@ -64,11 +89,30 @@ int obter_peso(char* status){
     return 0;
 }
 
+int ler_inteiro() {
+    int valor;
+    int ch;
+
+    if (scanf("%d", &valor) != 1) {
+        while ((ch = getchar()) != '\n' && ch != EOF);
+        return -1;
+    }
+
+    while ((ch = getchar()) != '\n' && ch != EOF);
+
+    return valor;
+}
+
 // funcao de trocar dados para reordenação, extraida para não ter que repetir 3 vezes
 void trocar_dados(Reclamacao* i, Reclamacao* j) {
     int temp_id = i->id;
     i->id = j->id;
     j->id = temp_id;
+
+    char temp_titulo[50];
+    strcpy(temp_titulo, i->titulo);
+    strcpy(i->titulo, j->titulo);
+    strcpy(j->titulo, temp_titulo);
 
     char temp_escola[100];
     strcpy(temp_escola, i->escola);
@@ -98,87 +142,76 @@ void trocar_dados(Reclamacao* i, Reclamacao* j) {
 
 // ordena todos threads de tres formas diferentes 
 void ordenar(Reclamacao* head) {
-    // se a lista estiver vazia ou tiver apenas um elemento, não precisa ordenar
-    if (head == NULL || head->proximo == NULL){
-        printf("Nao ha como ordernar um ticket.");
-        return;    
-    } 
+    if (head == NULL || head->proximo == NULL) {
+        printf("Nao ha chamados suficientes para ordenar.\n");
+        return;
+    }
 
     int modo;
     int ch;
 
-    printf("1 - Ordenacao por ID\n2 - Ordenacao por Atividade\n3 - Ordenacao por Status\n");
-    scanf("%d", &modo);
-    while ((ch = getchar()) != '\n' && ch != EOF);
+    printf("1 - Ordenacao por ID\n");
+    printf("2 - Ordenacao por Atividade\n");
+    printf("3 - Ordenacao por Status\n");
 
-    switch(modo){
-        case 1:
-        {
-            Reclamacao* i = head;
-    
-        // vai do primeiro até o penúltimo nó
-        while (i != NULL) {
-            Reclamacao* j = i->proximo; // 'j' começa sempre uma posição à frente de 'i'
-            
-            // vai do segundo até o ultimo
-            while (j != NULL) {
-                
-                // criterio de troca
-                if (j->id < i->id) {
-                    trocar_dados(i, j); // troca em si é feita em trocar_dados()
-                }
-                j = j->proximo; // avança o 'j'
-            }
-            i = i->proximo; // avança o 'i'
-        }
-        break;
-        }
-        case 2:
-        {
-            Reclamacao* i = head;
-    
-        while (i != NULL) {
-            Reclamacao* j = i->proximo; 
-            
-            while (j != NULL) {
-                
-                if (j->qtd_respostas < i->qtd_respostas) {
-                    trocar_dados(i, j);
-                }
-                j = j->proximo; 
-            }
-            i = i->proximo; 
-        }
-        break;
+    modo = ler_inteiro();
 
-        }
-        
-        case 3:
-        {
-            Reclamacao* i = head;
-    
-
-        while (i != NULL) {
-            Reclamacao* j = i->proximo; 
-            
-            while (j != NULL) {
-                
-                if (obter_peso(j->status) < obter_peso(i->status)) {
-                    trocar_dados(i, j);
-                }
-                j = j->proximo; 
-            }
-            i = i->proximo; 
-        }
-        break;
-        }
-        
-        default:
+    if (modo == -1) {
+        printf("Entrada invalida. Digite um numero.\n");
         return;
-
     }
 
+    if (modo < 1 || modo > 3) {
+        printf("Opcao invalida.\n");
+        return;
+    }
+
+    Reclamacao* i = head;
+
+    // Selection Sort
+    while (i != NULL) {
+
+        Reclamacao* menor = i;
+        Reclamacao* j = i->proximo;
+
+        // Procura o menor elemento do restante da lista
+        while (j != NULL) {
+
+            int trocar = 0;
+
+            switch (modo) {
+                case 1:
+                    trocar = j->id < menor->id;
+                    break;
+
+                case 2:
+                    trocar = j->qtd_respostas < menor->qtd_respostas;
+                    break;
+
+                case 3:
+                    trocar = obter_peso(j->status) <
+                             obter_peso(menor->status);
+                    break;
+            }
+
+            if (trocar) {
+                menor = j;
+            }
+
+            j = j->proximo;
+        }
+
+        // Faz somente uma troca ao terminar a busca
+        if (menor != i) {
+            trocar_dados(i, menor);
+        }
+
+        i = i->proximo;
+    }
+
+    printf("Ordenacao realizada com sucesso!\n");
 }
+
 
 // pode mandar mensagens dentro de um thread se estiver em visualizar_detalhes()
 void mandar_mensagem(Reclamacao* head, int id_busca){
@@ -186,6 +219,11 @@ void mandar_mensagem(Reclamacao* head, int id_busca){
 
     while (atual != NULL){
         if (atual->id == id_busca) {
+            if (atual->qtd_respostas >= 100) {
+                printf("Essa thread atingiu o limite de respostas.\n");
+                return;
+            }
+
             printf("Autor: ");
             fgets(atual->lista_respostas[atual->qtd_respostas].autor, sizeof(atual->lista_respostas[atual->qtd_respostas].autor), stdin);
             atual->lista_respostas[atual->qtd_respostas].autor[strcspn(atual->lista_respostas[atual->qtd_respostas].autor, "\n")] = '\0';
@@ -211,6 +249,10 @@ void visualizar_detalhes(Reclamacao* head, int id_busca){
 
     while (atual != NULL){
         if (atual->id == id_busca) {
+            
+            int respondendo = 1; 
+            while (respondendo == 1) {
+
             for (int i = 0; i < atual->qtd_respostas; i++){
                 printf("----------------------------------------\n");
                 printf("@%s\n", atual->lista_respostas[i].autor);
@@ -221,29 +263,42 @@ void visualizar_detalhes(Reclamacao* head, int id_busca){
                 printf("(Ninguem respondeu a esse Token ainda)\n");
             }
 
-            char resposta = 'S';
+            int resposta;
             int ch;
 
             printf("1 - Mandar Mensagem\n2 - Finalizar Thread (Problema Resolvido)\n3 - Sair\n");
-            scanf("%c", &resposta);
-            while ((ch = getchar()) != '\n' && ch != EOF);
+            resposta = ler_inteiro();
+
+            if (resposta == -1) {
+                printf("Entrada invalida. Digite um numero.\n");
+                continue;
+            }
 
             switch(resposta){
                 case 1:{
-                    // abre denovo instantaneamente para pode ver as novas mensagens
+                    if (strcmp(atual->status, "Finalizado") == 0) {
+                        printf("Nao e possivel mandar mensagens em um thread finalizado.\n");
+                        break;
+                    }
+
                     mandar_mensagem(head, id_busca);
-                    visualizar_detalhes(head, id_busca);
                     break;
                 }
                 case 2:{
                     strcpy(atual->status, "Finalizado");
+                    respondendo = 0;
                     break;
                 }
                 case 3:{
+                    respondendo = 0;
                     return;
                 }
+                    default:{
+                        printf("Opcao invalida. Tente novamente.\n");
+                        break;
+                }
             }
-
+        }
             return;
         }
         atual = atual->proximo;
@@ -254,6 +309,7 @@ void visualizar_detalhes(Reclamacao* head, int id_busca){
 
 }
 
+
 // lista de todos threads com todas informações relacionadas
 void listar(Reclamacao* head){
     if (head == NULL){
@@ -261,7 +317,7 @@ void listar(Reclamacao* head){
         return;
     }
 
-    int id = 0;
+    int id;
     int ch;
     int resposta;
     int forum = 1;
@@ -277,14 +333,21 @@ void listar(Reclamacao* head){
             atual = atual->proximo;
         }
         printf("1 - Entrar em Thread\n2 - Ordenar Tickets\n3 - Sair\n\n");
-        scanf("%d", &resposta);
-        while ((ch = getchar()) != '\n' && ch != EOF);
+        resposta = ler_inteiro();
+
+        if (resposta == -1) {
+            printf("Entrada invalida. Digite um numero.\n");
+            continue;
+        }
 
         switch(resposta){
             case 1:{
                 printf("Qual ID do Thread que quer entrar? ");
-                scanf("%d", &id);
-                while ((ch = getchar()) != '\n' && ch != EOF);
+                id = ler_inteiro();
+                if (id == -1) {
+                    printf("ID invalido. Digite um numero.\n");
+                    break;
+                }
 
                 visualizar_detalhes(head, id);
                 break;
@@ -296,6 +359,10 @@ void listar(Reclamacao* head){
             }
             case 3:{
                 forum = 0;
+                break;
+            }
+            default:{
+                printf("Opcao invalida. Tente novamente.\n");
                 break;
             }
         }
@@ -378,13 +445,13 @@ Reclamacao* excluir(Reclamacao* head, int id_busca) {
 
 // mesma coisa de listar porem faz uso the tolower e strstr para encontra apenas especificamente reclamacoes relacionadas a escolas especificas
 void listar_escola(Reclamacao* head){
-    
+
     if (head == NULL){
         printf("\nNao ha reclamacoes cadastradas.\n");
         return;
     }
-    
-    int id = 0;
+
+    int id;
     int ch;
     int resposta;
     int forum = 1;
@@ -394,60 +461,227 @@ void listar_escola(Reclamacao* head){
     fgets(escola, sizeof(escola), stdin);
     escola[strcspn(escola, "\n")] = '\0';
 
-    for (int k = 0; escola[k]; k++) {
-        escola[k] = tolower(escola[k]);
+    // impede pesquisa vazia
+    if (strlen(escola) == 0) {
+        printf("O nome da escola nao pode ficar vazio.\n");
+        return;
     }
 
+    // converte a pesquisa para letras minusculas
+    for (int k = 0; escola[k]; k++) {
+        escola[k] = tolower((unsigned char)escola[k]);
+    }
 
     while (forum == 1){
+
         Reclamacao* atual = head;
+        int encontrou = 0;
+
         while (atual != NULL){
+
             char escola_no_minusculo[100];
             int k = 0;
-            for (k = 0; atual->escola[k]; k++) {
-                escola_no_minusculo[k] = tolower(atual->escola[k]);
-            }
-            escola_no_minusculo[k] = '\0'; // Fecha a string de forma segura
 
+            // converte o nome da escola cadastrada para minusculo
+            for (k = 0; atual->escola[k]; k++) {
+                escola_no_minusculo[k] =
+                    tolower((unsigned char)atual->escola[k]);
+            }
+
+            escola_no_minusculo[k] = '\0';
+
+            // verifica se a escola corresponde a pesquisa
             if (strstr(escola_no_minusculo, escola) != NULL){
+
+                encontrou = 1;
+
+                printf("\nId: %d\n", atual->id);
+                printf("'%s'\n", atual->titulo);
+                printf("Escola: %s\n", atual->escola);
+                printf("Descricao: %s\n", atual->descricao);
+                printf("Status: %s\n", atual->status);
+                printf("Numero de mensagens desse topico: %d\n\n",
+                       atual->qtd_respostas);
+            }
+
+            atual = atual->proximo;
+        }
+
+        // informa quando nenhuma reclamacao corresponde a pesquisa
+        if (encontrou == 0) {
+            printf("Nenhuma reclamacao encontrada para essa escola.\n");
+            return;
+        }
+
+        printf("1 - Entrar em Thread\n");
+        printf("2 - Ordenar Tickets\n");
+        printf("3 - Sair\n\n");
+
+        resposta = ler_inteiro();
+        
+        if (resposta == -1) {
+            printf("Entrada invalida. Digite um numero.\n");
+            continue;
+        }
+
+        switch(resposta){
+
+            case 1:{
+                printf("Qual ID do Thread que quer entrar? ");
+                id = ler_inteiro();
+                if (id == -1) {
+                    printf("ID invalido. Digite um numero.\n");
+                    break;
+                }
+
+                visualizar_detalhes(head, id);
+                break;
+            }
+
+            case 2:{
+                ordenar(head);
+                break;
+            }
+
+            case 3:{
+                forum = 0;
+                break;
+            }
+
+            default:{
+                printf("Opcao invalida. Tente novamente.\n");
+                break;
+            }
+        }
+    }
+}
+
+Reclamacao* atualizar(Reclamacao* head, int id_atualizacao){
+
+    Reclamacao* atual = head;
+
+    while (atual != NULL){
+        if (atual->id == id_atualizacao) {
+            
+            int atualizando = 1;
+            while (atualizando == 1) {
+                int escolha;
+
                 printf("\nId: %d\n", atual->id);
                 printf("'%s'\n", atual->titulo);
                 printf("Escola: %s\n", atual->escola);
                 printf("Descricao: %s\n", atual->descricao);
                 printf("Status: %s\n", atual->status);
                 printf("Numero de mensagens desse topico: %d\n\n", atual->qtd_respostas);
-            }
+                
+                printf("O que deseja atualizar?\n1 - Titulo\n2 - Escola\n3 - Descricao\n4 - Status\n5 - Sair\n");
+                escolha = ler_inteiro();
 
-            atual = atual->proximo;
-        }
-        printf("1 - Entrar em Thread\n2 - Ordenar Tickets\n3 - Sair\n\n");
-        scanf("%d", &resposta);
-        while ((ch = getchar()) != '\n' && ch != EOF);
+                if (escolha == -1) {
+                    printf("Entrada invalida. Digite um numero.\n");
+                    continue;
+                }
 
-        switch(resposta){
-            case 1:{
-                printf("Qual ID do Thread que quer entrar? ");
-                scanf("%d", &id);
-                while ((ch = getchar()) != '\n' && ch != EOF);
+                switch(escolha){
+                    case 1:{
+                        do {
+                            printf("Novo Titulo do topico: ");
+                            fgets(atual->titulo, sizeof(atual->titulo), stdin);
+                            atual->titulo[strcspn(atual->titulo, "\n")] = '\0';
 
-                visualizar_detalhes(head, id);
-                break;
+                            if (strlen(atual->titulo) == 0) {
+                                printf("O titulo nao pode ficar vazio.\n");
+                            }
+                        } while (strlen(atual->titulo) == 0);
+
+                        break;
+                    }
+                    case 2:{
+                        do {
+                            printf("Nova Escola que esse pedido interessa: ");
+                            fgets(atual->escola, sizeof(atual->escola), stdin);
+                            atual->escola[strcspn(atual->escola, "\n")] = '\0';
+
+                            if (strlen(atual->escola) == 0) {
+                                printf("O nome da escola nao pode ficar vazio.\n");
+                            }
+                        } while (strlen(atual->escola) == 0);
+
+                        break;
+                    }
+                    case 3:{
+                        do {
+                            printf("Nova Descricao do topico: ");
+                            fgets(atual->descricao, sizeof(atual->descricao), stdin);
+                            atual->descricao[strcspn(atual->descricao, "\n")] = '\0';
+
+                            if (strlen(atual->descricao) == 0) {
+                                printf("A descricao nao pode ficar vazia.\n");
+                            }
+                        } while (strlen(atual->descricao) == 0);
+                        
+                        
+                        break;
+                    }
+                    case 4:{
+                        int status_opcao;
+
+                        do {
+                            printf("Novo Status do topico (1 - Pendente/2 - Em Andamento/3 - Finalizado): ");
+                            status_opcao = ler_inteiro();
+
+                            switch(status_opcao){
+                                case 1:
+                                    strcpy(atual->status, "Pendente");
+                                    break;
+                                case 2:
+                                    strcpy(atual->status, "Em Andamento");
+                                    break;
+                                case 3:
+                                    strcpy(atual->status, "Finalizado");
+                                    break;
+                                default:
+                                    printf("Opcao invalida. Tente novamente.\n");
+                                    break;
+                            }
+
+                        } while (status_opcao < 1 || status_opcao > 3);
+
+                        break;
+                    }
+                    case 5:{
+                        atualizando = 0;
+                        break;
+                    }
+                    default:{
+                        printf("Opcao invalida. Tente novamente.\n");
+                        break;
+                    }
+                }
+                
             }
             
-            case 2:{
-                ordenar(head);
-                break;
-            }
-            case 3:{
-                forum = 0;
-                break;
-            }
+            return head;
         }
-
+        atual = atual->proximo;
     }
-    
 
+    printf("O Id %d nao foi encontrado para atualizacao.\n", id_atualizacao);
+    return head;
 }
+
+void liberar_lista(Reclamacao* head) {
+    Reclamacao* atual = head;
+
+    while (atual != NULL) {
+        Reclamacao* temp = atual;
+        atual = atual->proximo;
+        free(temp);
+    }
+}
+
+
+
 
 // função principal
 int main(){
@@ -458,9 +692,13 @@ int main(){
     int ch;
     while(sistema == 1){
         printf("--- Citizen Education Complaint ---\n");
-        printf("1 - Criar Token\n2 - Acessar Forum\n3 - Acessar Forum da Sua Escola\n4 - Dashboard\n5 - Remocao de Token\n6 - Sair\n\n");
-        scanf("%d", &escolha);
-        while ((ch = getchar()) != '\n' && ch != EOF);
+        printf("1 - Criar Token\n2 - Acessar Forum\n3 - Acessar Forum da Sua Escola\n4 - Dashboard\n5 - Remocao de Token (ADMIN)\n6 - Update Token (ADMIN)\n7 - Sair\n\n");
+        escolha = ler_inteiro();
+
+        if (escolha == -1) {
+            printf("Entrada invalida. Digite um numero.\n");
+            continue;
+        }
 
 
         switch(escolha){
@@ -490,17 +728,45 @@ int main(){
 
                 if (continuar == 's' || continuar == 'S'){
                     printf("Qual id do Thread sendo removido? ");
-                    scanf("%d", &id_delecao);
-                    while ((ch = getchar()) != '\n' && ch != EOF);
+                    id_delecao = ler_inteiro();
+
+                    if (id_delecao == -1) {
+                        printf("ID invalido. Digite um numero.\n");
+                        break;
+                    }
 
                     lista_educacao = excluir(lista_educacao, id_delecao);
                 }
                 break;
             }
             case 6:{
-                sistema = 0;
+                char continuar;
+                int id_atualizacao;
+                printf("Deseja atualizar um Token? (S/N) ");
+                scanf("%c", &continuar);
+                while ((ch = getchar()) != '\n' && ch != EOF);
+
+                if (continuar == 's' || continuar == 'S'){
+                    printf("Qual id do Token sendo atualizado? ");
+                    id_atualizacao = ler_inteiro();
+
+                    if (id_atualizacao == -1) {
+                        printf("ID invalido. Digite um numero.\n");
+                        break;
+                    }
+
+                    lista_educacao = atualizar(lista_educacao, id_atualizacao);
+                }
+                break;
             }
-            default:{
+            case 7:{
+                liberar_lista(lista_educacao);
+                lista_educacao = NULL;
+                sistema = 0;
+                break;
+            }
+            default: {
+                printf("Opcao invalida. Tente novamente.\n");
                 break;
             }
         }
