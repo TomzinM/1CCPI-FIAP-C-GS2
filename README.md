@@ -236,6 +236,33 @@ Considerando toda a estrutura de dados, o espaço total utilizado pelo sistema �
 
 ---
 
+## Testes e Validação
+
+O sistema foi desenvolvido considerando diferentes cenários de utilização, incluindo operações comuns, entradas inválidas e situações em que não existem registros cadastrados.
+
+Os testes devem contemplar os seguintes cenários:
+
+| Teste | Cenário | Resultado Esperado |
+|---|---|---|
+| Cadastro válido | Inserir uma reclamação com todos os campos preenchidos. | Reclamação cadastrada com sucesso e ID gerado automaticamente. |
+| Cadastro incompleto | Tentar cadastrar uma reclamação deixando um campo obrigatório vazio. | Cadastro rejeitado e memória alocada liberada. |
+| Consulta de lista vazia | Acessar a listagem sem reclamações cadastradas. | Mensagem informando que não existem registros. |
+| Pesquisa por ID existente | Informar o ID de uma reclamação cadastrada. | Exibição dos detalhes da reclamação correspondente. |
+| Pesquisa por ID inexistente | Informar um ID que não está cadastrado. | Mensagem informando que o registro não foi encontrado. |
+| Pesquisa por escola | Pesquisar utilizando o nome completo ou parcial de uma escola. | Exibição das reclamações correspondentes, ignorando diferenças entre letras maiúsculas e minúsculas. |
+| Pesquisa sem resultados | Informar um nome de escola sem correspondências. | Mensagem informando que nenhuma reclamação foi encontrada. |
+| Atualização | Alterar o título, a escola, a descrição ou o status de uma reclamação. | Dados atualizados corretamente. |
+| Exclusão | Excluir uma reclamação existente. | Registro removido e memória liberada corretamente. |
+| Ordenação | Ordenar os registros por ID, quantidade de mensagens e status. | Reclamações organizadas conforme o critério selecionado. |
+| Histórico de mensagens | Adicionar mensagens a uma reclamação. | Mensagens armazenadas e contador atualizado. |
+| Limite de mensagens | Tentar adicionar uma mensagem quando o histórico já possui 100 respostas. | Operação impedida, sem ultrapassar a capacidade do vetor. |
+| Entrada inválida | Informar letras ou opções fora do intervalo esperado nos menus. | Entrada inválida identificada e usuário orientado a tentar novamente. |
+| Encerramento | Encerrar o programa após cadastrar reclamações. | Memória ocupada pela lista encadeada liberada corretamente. |
+
+Os testes permitem verificar o funcionamento das operações principais, a integridade da lista encadeada, a validação das entradas e o gerenciamento da memória dinâmica.
+
+---
+
 ## Como Executar o Projeto
 
 1. Certifique-se de ter um compilador para a linguagem C instalado, como o `gcc`.
